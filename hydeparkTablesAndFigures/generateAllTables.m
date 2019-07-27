@@ -1,0 +1,16 @@
+clear
+clc
+close all
+
+generateTablesCRPS
+generateTablesCRPSeval40
+generateTablesCRPSeval80
+generateTablesCRPSvsETACONST
+
+generateTablesCR70
+generateTablesCR70eval40redo
+generateTablesCR70eval80redo
+
+
+
+
