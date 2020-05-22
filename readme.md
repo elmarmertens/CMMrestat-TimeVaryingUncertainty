@@ -2,7 +2,7 @@
 # “Modeling Time-Varying Uncertainty of 
 # Multiple-Horizon Forecast Errors“
 
-This readme file describes the set of replication files (“the replication set“) for “Modeling Time-Varying Uncertainty of Multiple-Horizon Forecast Errors“ forthcoming in the Review of Economics and Statistics. The replication set contains code as well as all of our input data in raw form as obtained from their original sources described further below.
+This readme file describes the set of replication files (“the replication set“) for “Modeling Time-Varying Uncertainty of Multiple-Horizon Forecast Errors“ published in the Review of Economics and Statistics, 2020, https://doi.org/10.1162/rest_a_00809. The replication set contains code as well as all of our input data in raw form as obtained from their original sources described further below.
 
 
 ### Authors 
