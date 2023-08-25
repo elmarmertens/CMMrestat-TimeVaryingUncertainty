@@ -1,4 +1,4 @@
-function [feSVdraws, feDraws, etaSVdraws, hhVCV, RHO, HBAR] = mcmcsamplerSVAR1reject(eta, etaNanny, T, horizons, MCMCdraws, Nfedraws, doZeroSlopes, doDiffuseSlopes, rndStream, showProgress)
+function [feSVdraws, feDraws, etaSVdraws, hhVCV, RHO, HBAR] = mcmcsamplerSVar1(eta, etaNanny, T, horizons, MCMCdraws, Nfedraws, doZeroSlopes, doDiffuseSlopes, rndStream, showProgress)
 
 % NOTE: SVdraws are *variance* draws (take sqrt to convert into Stoch*Vol*)
 
@@ -35,8 +35,9 @@ hhVCV = NaN(Nsurvey, Nsurvey, MCMCdraws);
 hvcv  = iwishdraw(hvarT, hvarDof, 1, hvarTsqrt, rndStream);
 h0    = Eh0 + sqrt(Vh0) .* randn(rndStream, Nsurvey, 1);
 
-rho0  = repmat(0.8, Nsurvey, 1);
-rhoV0 = 0.2^2 * eye(Nsurvey);
+rho0       = repmat(0.8, Nsurvey, 1);
+rhoV0i     = (1 / 0.2^2) * eye(Nsurvey);
+rhosqrtV0i = (1 / 0.2) * eye(Nsurvey);
 
 RHO         = NaN(Nsurvey,MCMCdraws);
 HBAR        = NaN(Nsurvey,MCMCdraws);
@@ -58,7 +59,7 @@ end
 rhoPREV = repmat(10,Nsurvey, 1);
 ndx = abs(rhoPREV) >= 1;
 while any(ndx)
-    rhodraw       = rho0 + sqrt(rhoV0) .* randn(rndStream, Nsurvey, 1);
+    rhodraw       = rho0 + transpose(rhosqrtV0i) \ randn(rndStream, Nsurvey, 1);
     rhoPREV(ndx)  = rhodraw(ndx);
     ndx           = abs(rhoPREV) >= 1;
 end
@@ -83,6 +84,7 @@ while n <= MCMCdraws
     end
     
     if any(etaNanny(:))
+        
         %% draw missing values
         for t = find(any(etaNanny,2))'
             thisNdx = ~etaNanny(t,:);
@@ -99,7 +101,7 @@ while n <= MCMCdraws
                 beta    = covData / varData;
                 
                 varMissing  = sigma(~thisNdx, ~thisNdx);
-                residVar    = varMissing - beta * covData';
+                residVar    = varMissing - beta * varData * beta'; % bit clumys but numerically more stable than beta * covData
                 missingData = beta * etaData' + chol(residVar)' * randn(rndStream, Nmissing, 1);
                 eta(t, ~thisNdx) = missingData;
             else
@@ -142,14 +144,12 @@ while n <= MCMCdraws
     htilde = htilde';
     
     
-    rhodraws = bayesAR1SURdraw(htilde(2:end,:), htilde(1:end-1,:), hvcv, rho0, rhoV0, maxShake, rndStream);
+    rhodraws = bayesAR1SURdraw(htilde(2:end,:), htilde(1:end-1,:), hvcv, rho0, rhoV0i, maxShake, rndStream);
     shake    = 0;
     OK       = false;
     while ~OK && shake < maxShake
         shake = shake + 1;
         OK = all(abs(rhodraws(:,shake)) < 1);
-        % [rhoPREV, hresid] = bayesAR1SURdraw(htilde(2:end,:), htilde(1:end-1,:), hvcv, rho0, rhoV0, 1, rndStream);
-        % OK = all(abs(rhoPREV) < 1) && shake < maxShake;
     end
     
     rhoPREV = rhodraws(:,shake);
@@ -158,7 +158,7 @@ while n <= MCMCdraws
         warning('maxShake exhausted T=%d', T)
         rhoPREV = rhoLAST;
         hPREV   = hLAST;
-        continue
+        continue % redo entire MCMC step
     end
     
     hresid  = htilde(2:end,:) - bsxfun(@times, htilde(1:end-1,:), rhoPREV');
